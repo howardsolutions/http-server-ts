@@ -6,13 +6,16 @@ const PORT = 8080;
 
 // Static middleware to serve files and images
 app.use("/app", middlewareMetricsInc, express.static("./src/app"));
+// JSON body parser for API endpoints
+app.use(express.json());
 
 // log response middleware
 app.use(middlewareLogResponses)
 
 app.get("/api/healthz", handlerReadiness);
 app.get("/admin/metrics", handlerAdminMetrics);
-app.get("/admin/reset", handlerReset);
+app.post("/admin/reset", handlerReset);
+app.post("/api/validate_chirp", handlerValidateChirp);
 
 function handlerReadiness(req: express.Request, res: express.Response) {
   res.set("Content-Type", "text/plain; charset=utf-8");
@@ -57,6 +60,24 @@ function middlewareLogResponses(req: express.Request, res: express.Response, nex
 
   next()
 };
+
+function handlerValidateChirp(req: express.Request, res: express.Response) {
+  try {
+    const body = (req.body ?? {}).body;
+
+    if (typeof body !== "string") {
+      return res.status(400).json({ error: "Invalid request: body must be a string" });
+    }
+
+    if (body.length > 140) {
+      return res.status(400).json({ error: "Chirp is too long" });
+    }
+
+    return res.status(200).json({ valid: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+}
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
