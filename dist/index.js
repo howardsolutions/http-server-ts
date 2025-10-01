@@ -58,7 +58,12 @@ function handlerValidateChirp(req, res) {
         if (body.length > 140) {
             return res.status(400).json({ error: "Chirp is too long" });
         }
-        return res.status(200).json({ valid: true });
+        const bannedWords = ["kerfuffle", "sharbert", "fornax"];
+        const cleanedBody = body
+            .split(" ")
+            .map((token) => (bannedWords.includes(token.toLowerCase()) ? "****" : token))
+            .join(" ");
+        return res.status(200).json({ cleanedBody });
     }
     catch (err) {
         return res.status(500).json({ error: "Something went wrong" });
