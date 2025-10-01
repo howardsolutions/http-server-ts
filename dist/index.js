@@ -2,6 +2,34 @@ import express from "express";
 import { config } from "./config.js";
 const app = express();
 const PORT = 8080;
+// Custom HTTP error classes
+class HttpError extends Error {
+    statusCode;
+    constructor(statusCode, message) {
+        super(message);
+        this.statusCode = statusCode;
+    }
+}
+class BadRequestError extends HttpError {
+    constructor(message) {
+        super(400, message);
+    }
+}
+class UnauthorizedError extends HttpError {
+    constructor(message) {
+        super(401, message);
+    }
+}
+class ForbiddenError extends HttpError {
+    constructor(message) {
+        super(403, message);
+    }
+}
+class NotFoundError extends HttpError {
+    constructor(message) {
+        super(404, message);
+    }
+}
 // Static middleware to serve files and images
 app.use("/app", middlewareMetricsInc, express.static("./src/app"));
 // JSON body parser for API endpoints
@@ -52,7 +80,7 @@ function handlerValidateChirp(req, res) {
     }
     if (body.length > 140) {
         // Let the centralized error handler catch this
-        throw new Error("Chirp is too long");
+        throw new BadRequestError("Chirp is too long. Max length is 140");
     }
     const bannedWords = ["kerfuffle", "sharbert", "fornax"];
     const cleanedBody = body
@@ -63,6 +91,9 @@ function handlerValidateChirp(req, res) {
 }
 // centralized error-handling middleware
 app.use(function errorHandler(err, req, res, next) {
+    if (err instanceof HttpError) {
+        return res.status(err.statusCode).json({ error: err.message });
+    }
     console.log(err);
     res.status(500).json({ error: "Something went wrong on our end" });
 });

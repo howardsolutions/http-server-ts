@@ -4,6 +4,39 @@ import { config } from "./config.js";
 const app = express();
 const PORT = 8080;
 
+// Custom HTTP error classes
+class HttpError extends Error {
+  statusCode: number;
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
+class BadRequestError extends HttpError {
+  constructor(message: string) {
+    super(400, message);
+  }
+}
+
+class UnauthorizedError extends HttpError {
+  constructor(message: string) {
+    super(401, message);
+  }
+}
+
+class ForbiddenError extends HttpError {
+  constructor(message: string) {
+    super(403, message);
+  }
+}
+
+class NotFoundError extends HttpError {
+  constructor(message: string) {
+    super(404, message);
+  }
+}
+
 // Static middleware to serve files and images
 app.use("/app", middlewareMetricsInc, express.static("./src/app"));
 // JSON body parser for API endpoints
@@ -65,7 +98,7 @@ function handlerValidateChirp(req: express.Request, res: express.Response) {
 
   if (body.length > 140) {
     // Let the centralized error handler catch this
-    throw new Error("Chirp is too long");
+    throw new BadRequestError("Chirp is too long. Max length is 140");
   }
 
   const bannedWords = ["kerfuffle", "sharbert", "fornax"];
@@ -85,6 +118,10 @@ app.use(function errorHandler(
   res: express.Response,
   next: express.NextFunction
 ) {
+  if (err instanceof HttpError) {
+    return res.status(err.statusCode).json({ error: err.message });
+  }
+
   console.log(err);
   res.status(500).json({ error: "Something went wrong on our end" });
 });
