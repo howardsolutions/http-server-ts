@@ -16,10 +16,6 @@ function handlerReadiness(req, res) {
     res.set("Content-Type", "text/plain; charset=utf-8");
     res.send("OK");
 }
-function handlerMetrics(req, res) {
-    res.set("Content-Type", "text/plain; charset=utf-8");
-    res.send(`Hits: ${config.fileserverHits}`);
-}
 function handlerAdminMetrics(req, res) {
     res.set("Content-Type", "text/html; charset=utf-8");
     res.send(`<html>
@@ -50,25 +46,26 @@ function middlewareLogResponses(req, res, next) {
 }
 ;
 function handlerValidateChirp(req, res) {
-    try {
-        const body = (req.body ?? {}).body;
-        if (typeof body !== "string") {
-            return res.status(400).json({ error: "Invalid request: body must be a string" });
-        }
-        if (body.length > 140) {
-            return res.status(400).json({ error: "Chirp is too long" });
-        }
-        const bannedWords = ["kerfuffle", "sharbert", "fornax"];
-        const cleanedBody = body
-            .split(" ")
-            .map((token) => (bannedWords.includes(token.toLowerCase()) ? "****" : token))
-            .join(" ");
-        return res.status(200).json({ cleanedBody });
+    const body = (req.body ?? {}).body;
+    if (typeof body !== "string") {
+        return res.status(400).json({ error: "Invalid request: body must be a string" });
     }
-    catch (err) {
-        return res.status(500).json({ error: "Something went wrong" });
+    if (body.length > 140) {
+        // Let the centralized error handler catch this
+        throw new Error("Chirp is too long");
     }
+    const bannedWords = ["kerfuffle", "sharbert", "fornax"];
+    const cleanedBody = body
+        .split(" ")
+        .map((token) => (bannedWords.includes(token.toLowerCase()) ? "****" : token))
+        .join(" ");
+    return res.status(200).json({ cleanedBody });
 }
+// centralized error-handling middleware
+app.use(function errorHandler(err, req, res, next) {
+    console.log(err);
+    res.status(500).json({ error: "Something went wrong on our end" });
+});
 app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
 });
