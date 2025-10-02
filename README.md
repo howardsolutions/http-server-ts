@@ -78,3 +78,20 @@ The difference is that they also come with all the fancy code and algorithms tha
 In the case of a SQL database, the files are abstracted away from us entirely. You just write SQL queries and let the DB handle the rest.
 
 We will be using option 2: PostgreSQL. It's a production-ready, open-source SQL database. It's a great choice for many web applications, and as a back-end engineer, it might be the single most important database to be familiar with.
+
+<hr />
+
+## Migration?
+
+A migration is just a `set of changes` to your database table.
+
+You can have as many migrations as needed as your requirements change over time. 
+
+For example, one migration might create a new table, one might delete a column, and one might add 2 new columns.
+
+- An "up" migration moves the state of the database from its current schema to the schema that you want.
+
+- So, to get a "blank" database to the state it needs to be ready to run your application, you run all the "up" migrations.
+
+- If something breaks, you can run one of the "down" migrations to REVERT the database TO a previous state. "Down" migrations are also used if you need to RESET a local testing database to a KNOWN state.
+
