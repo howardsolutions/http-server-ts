@@ -1,7 +1,17 @@
 import express from "express";
 import { config } from "./config.js";
+import postgres from "postgres";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { drizzle } from "drizzle-orm/postgres-js";
 
 const app = express();
+
+// Run migrations on startup
+const migrationClient = postgres(config.db.url, { max: 1 });
+
+await migrate(drizzle(migrationClient), config.db.migrationConfig);
+await migrationClient.end();
+
 const PORT = 8080;
 
 // Custom HTTP error classes
