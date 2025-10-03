@@ -6,3 +6,8 @@ export async function createUser(user: NewUser) {
 
     return result;
 }
+
+export async function deleteAllUsers() {
+    const result = await db.delete(users);
+    return result;
+}

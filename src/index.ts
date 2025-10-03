@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { createUser, deleteAllUsers } from "./db/queries/users.js";
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use(middlewareLogResponses)
 app.get("/api/healthz", handlerReadiness);
 app.get("/admin/metrics", handlerAdminMetrics);
 app.post("/admin/reset", handlerReset);
+app.post("/api/users", handlerCreateUser);
 app.post("/api/validate_chirp", handlerValidateChirp);
 
 function handlerReadiness(req: express.Request, res: express.Response) {
@@ -75,10 +77,46 @@ function handlerAdminMetrics(req: express.Request, res: express.Response) {
 </html>`);
 }
 
-function handlerReset(req: express.Request, res: express.Response) {
+async function handlerReset(req: express.Request, res: express.Response) {
+  // Check if platform is dev - if not, return 403 Forbidden
+  if (config.platform !== "dev") {
+    throw new ForbiddenError("This endpoint is only available in development environment");
+  }
+
+  // Delete all users from the database
+  await deleteAllUsers();
+  
   config.fileserverHits = 0;
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.send("Reset successful");
+}
+
+async function handlerCreateUser(req: express.Request, res: express.Response) {
+  const { email } = req.body;
+
+  if (!email || typeof email !== "string") {
+    throw new BadRequestError("Email is required and must be a string");
+  }
+
+  try {
+    const user = await createUser({ email });
+    
+    if (!user) {
+      throw new BadRequestError("User with this email already exists");
+    }
+
+    res.status(201).json({
+      id: user.id,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      email: user.email
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("duplicate key")) {
+      throw new BadRequestError("User with this email already exists");
+    }
+    throw error;
+  }
 }
 
 // middleware fns

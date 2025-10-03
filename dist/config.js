@@ -15,4 +15,5 @@ export const config = {
         url: envOrThrow("DB_URL"),
         migrationConfig,
     },
+    platform: process.env.PLATFORM || "prod",
 };
