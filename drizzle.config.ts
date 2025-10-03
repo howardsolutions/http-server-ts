@@ -15,15 +15,15 @@ import { existsSync } from "node:fs";
   }
 })();
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DB_URL;
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL is not defined. Create a .env (or .env.local) at the project root with DATABASE_URL=..."
+    "DB_URL is not defined. Create a .env (or .env.local) at the project root with DB_URL=..."
   );
 }
 
 export default defineConfig({
-  schema: "schema.ts",
+  schema: "src/schema.ts",
   out: "src/migrations",
   dialect: "postgresql",
   dbCredentials: {
