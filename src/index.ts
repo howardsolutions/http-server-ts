@@ -4,7 +4,7 @@ import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createUser, deleteAllUsers } from "./db/queries/users.js";
-import { createChirp } from "./db/queries/chirps.js";
+import { createChirp, getAllChirps } from "./db/queries/chirps.js";
 
 const app = express();
 
@@ -59,6 +59,7 @@ app.use(middlewareLogResponses)
 
 app.get("/api/healthz", handlerReadiness);
 app.get("/admin/metrics", handlerAdminMetrics);
+app.get("/api/chirps", handlerGetAllChirps);
 app.post("/admin/reset", handlerReset);
 app.post("/api/users", handlerCreateUser);
 app.post("/api/chirps", handlerCreateChirp);
@@ -137,6 +138,24 @@ function middlewareLogResponses(req: express.Request, res: express.Response, nex
 
   next()
 };
+
+async function handlerGetAllChirps(req: express.Request, res: express.Response) {
+  try {
+    const chirps = await getAllChirps();
+    
+    const formattedChirps = chirps.map(chirp => ({
+      id: chirp.id,
+      createdAt: chirp.createdAt,
+      updatedAt: chirp.updatedAt,
+      body: chirp.body,
+      userId: chirp.userId,
+    }));
+
+    res.status(200).json(formattedChirps);
+  } catch (error) {
+    throw error;
+  }
+}
 
 async function handlerCreateChirp(req: express.Request, res: express.Response) {
   const { body, userId } = req.body;
