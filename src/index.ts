@@ -4,7 +4,7 @@ import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createUser, deleteAllUsers } from "./db/queries/users.js";
-import { createChirp, getAllChirps } from "./db/queries/chirps.js";
+import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
 
 const app = express();
 
@@ -60,6 +60,7 @@ app.use(middlewareLogResponses)
 app.get("/api/healthz", handlerReadiness);
 app.get("/admin/metrics", handlerAdminMetrics);
 app.get("/api/chirps", handlerGetAllChirps);
+app.get("/api/chirps/:chirpID", handlerGetChirpById);
 app.post("/admin/reset", handlerReset);
 app.post("/api/users", handlerCreateUser);
 app.post("/api/chirps", handlerCreateChirp);
@@ -153,6 +154,31 @@ async function handlerGetAllChirps(req: express.Request, res: express.Response) 
 
     res.status(200).json(formattedChirps);
   } catch (error) {
+    throw error;
+  }
+}
+
+async function handlerGetChirpById(req: express.Request, res: express.Response) {
+  const { chirpID } = req.params;
+
+  try {
+    const chirp = await getChirpById(chirpID);
+    
+    if (!chirp) {
+      throw new NotFoundError("Chirp not found");
+    }
+
+    res.status(200).json({
+      id: chirp.id,
+      createdAt: chirp.createdAt,
+      updatedAt: chirp.updatedAt,
+      body: chirp.body,
+      userId: chirp.userId,
+    });
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      throw error;
+    }
     throw error;
   }
 }
