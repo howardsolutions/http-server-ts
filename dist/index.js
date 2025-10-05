@@ -3,8 +3,9 @@ import { config } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { createUser, deleteAllUsers } from "./db/queries/users.js";
+import { createUser, deleteAllUsers, getUserByEmail } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
+import { hashPassword, checkPasswordHash } from "./auth.js";
 const app = express();
 // Run migrations on startup
 const migrationClient = postgres(config.db.url, { max: 1 });
@@ -51,6 +52,7 @@ app.get("/api/chirps", handlerGetAllChirps);
 app.get("/api/chirps/:chirpID", handlerGetChirpById);
 app.post("/admin/reset", handlerReset);
 app.post("/api/users", handlerCreateUser);
+app.post("/api/login", handlerLogin);
 app.post("/api/chirps", handlerCreateChirp);
 function handlerReadiness(req, res) {
     res.set("Content-Type", "text/plain; charset=utf-8");
@@ -77,25 +79,70 @@ async function handlerReset(req, res) {
     res.send("Reset successful");
 }
 async function handlerCreateUser(req, res) {
-    const { email } = req.body;
+    const { email, password } = req.body;
     if (!email || typeof email !== "string") {
         throw new BadRequestError("Email is required and must be a string");
     }
+    if (!password || typeof password !== "string") {
+        throw new BadRequestError("Password is required and must be a string");
+    }
     try {
-        const user = await createUser({ email });
+        // Hash the password before storing
+        const hashedPassword = await hashPassword(password);
+        const user = await createUser({
+            email,
+            hashed_password: hashedPassword
+        });
         if (!user) {
             throw new BadRequestError("User with this email already exists");
         }
-        res.status(201).json({
+        // Return user without the hashed password
+        const userResponse = {
             id: user.id,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
             email: user.email
-        });
+        };
+        res.status(201).json(userResponse);
     }
     catch (error) {
         if (error instanceof Error && error.message.includes("duplicate key")) {
             throw new BadRequestError("User with this email already exists");
+        }
+        throw error;
+    }
+}
+async function handlerLogin(req, res) {
+    const { email, password } = req.body;
+    if (!email || typeof email !== "string") {
+        throw new BadRequestError("Email is required and must be a string");
+    }
+    if (!password || typeof password !== "string") {
+        throw new BadRequestError("Password is required and must be a string");
+    }
+    try {
+        // Look up user by email
+        const user = await getUserByEmail(email);
+        if (!user) {
+            throw new UnauthorizedError("Incorrect email or password");
+        }
+        // Check if password matches the stored hash
+        const passwordMatches = await checkPasswordHash(password, user.hashed_password);
+        if (!passwordMatches) {
+            throw new UnauthorizedError("Incorrect email or password");
+        }
+        // Return user without the hashed password
+        const userResponse = {
+            id: user.id,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            email: user.email
+        };
+        res.status(200).json(userResponse);
+    }
+    catch (error) {
+        if (error instanceof UnauthorizedError) {
+            throw error;
         }
         throw error;
     }
