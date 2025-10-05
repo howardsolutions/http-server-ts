@@ -113,3 +113,14 @@ We won't be writing code to validate password strength in this course, but you g
 
 ## Hashing
 On the other hand, we will be writing code to store passwords in a way that prevents them from being read by anyone who gets access to your database. This is called hashing. Hashing is a one-way function. It takes a string as input and produces a string as output. The output string is called a hash.
+
+# JWTS
+
+## What Is a JWT?
+
+A JWT is a JSON Web Token. It's a cryptographically signed JSON object that contains information about the user.
+
+Once the token is created by the server, the data in the token can't be changed without the server knowing.
+
+When your server issues a JWT to Bob, Bob can use that token to make requests as Bob to your API. Bob won't be able to change the token to make requests as Alice.
+

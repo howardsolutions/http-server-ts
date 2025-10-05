@@ -1,4 +1,5 @@
 import argon2 from "argon2";
+import jwt from "jsonwebtoken";
 /**
  * Hash a password using argon2
  * @param password - The plain text password to hash
@@ -20,5 +21,50 @@ export async function checkPasswordHash(password, hash) {
     catch (error) {
         // If verification fails for any reason, return false
         return false;
+    }
+}
+/**
+ * Create a JWT token for a user
+ * @param userID - The user's ID to include in the token
+ * @param expiresIn - Token expiration time in seconds
+ * @param secret - Secret key to sign the token
+ * @returns string - The signed JWT token
+ */
+export function makeJWT(userID, expiresIn, secret) {
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+        iss: "chirpy",
+        sub: userID,
+        iat: now,
+        exp: now + expiresIn
+    };
+    return jwt.sign(payload, secret);
+}
+/**
+ * Validate a JWT token and extract the user ID
+ * @param tokenString - The JWT token string to validate
+ * @param secret - Secret key to verify the token signature
+ * @returns string - The user ID from the token's subject field
+ * @throws Error if token is invalid, expired, or has wrong signature
+ */
+export function validateJWT(tokenString, secret) {
+    try {
+        const decoded = jwt.verify(tokenString, secret);
+        if (!decoded.sub) {
+            throw new Error("Token does not contain a subject");
+        }
+        return decoded.sub;
+    }
+    catch (error) {
+        if (error instanceof jwt.JsonWebTokenError) {
+            throw new Error("Invalid token");
+        }
+        if (error instanceof jwt.TokenExpiredError) {
+            throw new Error("Token has expired");
+        }
+        if (error instanceof jwt.NotBeforeError) {
+            throw new Error("Token not active yet");
+        }
+        throw error;
     }
 }
