@@ -95,3 +95,21 @@ For example, one migration might create a new table, one might delete a column, 
 
 - If something breaks, you can run one of the "down" migrations to REVERT the database TO a previous state. "Down" migrations are also used if you need to RESET a local testing database to a KNOWN state.
 
+# Authentication With Passwords
+
+Authentication is the process of verifying who a user is. If you don't have a secure authentication system, your back-end systems will be open to attack!
+
+Imagine if I could make an HTTP request to the YouTube API and upload a video to your channel. YouTube's authentication system prevents this from happening by verifying that I am who I say I am.
+
+## Passwords
+Passwords are a common way to authenticate users. You know how they work: When a user signs up for a new account, they choose a password. When they log in, they enter their password again. The server will then compare the password they entered with the password that was stored in the database.
+
+There are 2 really important things to consider when storing passwords:
+
+Storing passwords in plain text is awful. If someone gets access to your database, they will be able to see all of your users' passwords. If you store passwords in plain text, you are giving away your users' passwords to anyone who gets access to your database.
+
+Password strength matters. If you allow users to choose weak passwords, they will be more likely to reuse the same password on other websites. If someone gets access to your database, they will be able to log in to your users' other accounts.
+We won't be writing code to validate password strength in this course, but you get the idea: you can enforce rules in your HTTP handlers to make sure passwords are of a certain length and complexity
+
+## Hashing
+On the other hand, we will be writing code to store passwords in a way that prevents them from being read by anyone who gets access to your database. This is called hashing. Hashing is a one-way function. It takes a string as input and produces a string as output. The output string is called a hash.
