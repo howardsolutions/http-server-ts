@@ -200,26 +200,28 @@ The client then dutifully stores the cookie and sends it back to the server on s
 
 Cookies can store any arbitrary data:
 
-* A user's name or other tracking information
-* A JWT (refresh and access tokens)
-* Items in a shopping cart
-* etc.
+- A user's name or other tracking information
+- A JWT (refresh and access tokens)
+- Items in a shopping cart
+- etc.
 
 The server decides what to put in a cookie, and the client's job is simply to store it and send it back.
 
 ## How Do Cookies Work?
 
+<details>
+  <summary><strong>Read more about how cookies work</strong></summary>
+  
 Simply put, cookies work through HTTP headers.
 
-Cookies are sent from the server to the client in the Set-Cookie header. 
+Cookies are sent from the server to the client in the Set-Cookie header.
 
 Cookies are most popular for web (browser-based) applications because browsers automatically send any cookies they have back to the server in the Cookie header.
 
 A good use-case for cookies is to serve as a more strict and secure transport layer for JWTs within the context of a browser-based application.
 
-For example, when using `httpOnly cookies`, you can ensure that 3rd party JavaScript that's being executed on your website can't access any cookies. 
+For example, when using `httpOnly cookies`, you can ensure that 3rd party JavaScript that's being executed on your website can't access any cookies.
 
 That's a lot better than storing JWTs in the browser's local storage, where it's easily accessible to any JavaScript running on the page.
 
-
-
+</details>
