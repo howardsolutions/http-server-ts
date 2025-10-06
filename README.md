@@ -30,9 +30,8 @@ app.use(errorHandler);
 
 # Catching Errors in Async Code
 
-```js 
-
-app.post("/api", async (req, res, next) => {
+```js
+app.post('/api', async (req, res, next) => {
   try {
     await handler(req, res);
   } catch (err) {
@@ -40,12 +39,11 @@ app.post("/api", async (req, res, next) => {
   }
 });
 
-OR
+OR;
 
-app.post("/api", (req, res, next) => {
+app.post('/api', (req, res, next) => {
   Promise.resolve(handler(req, res)).catch(next);
 });
-
 ```
 
 <hr />
@@ -53,7 +51,8 @@ app.post("/api", (req, res, next) => {
 # Storage
 
 ## Memory vs. Disk
-When you run a program on your computer (like our HTTP server), the program is loaded into memory. 
+
+When you run a program on your computer (like our HTTP server), the program is loaded into memory.
 
 Memory is a lot like a scratch pad. It's fast, but it's not permanent. If the program terminates or restarts, the data in memory is lost.
 
@@ -61,7 +60,7 @@ When you're building a web server, any data you store in memory (in your program
 
 ### Option 1: Raw Files
 
-We could take our user's data, serialize it to JSON, and save it to disk in `.json` files (or any other format for that matter). 
+We could take our user's data, serialize it to JSON, and save it to disk in `.json` files (or any other format for that matter).
 
 It's simple, and will even work for small applications. Trouble is, it will run into problems fast:
 
@@ -71,9 +70,9 @@ It's simple, and will even work for small applications. Trouble is, it will run 
 
 ### Option 2: a Database
 
-At the end of the day, a database technology like MySQL, PostgreSQL, or MongoDB "just" writes files to disk. 
+At the end of the day, a database technology like MySQL, PostgreSQL, or MongoDB "just" writes files to disk.
 
-The difference is that they also come with all the fancy code and algorithms that make managing those files efficient and safe. 
+The difference is that they also come with all the fancy code and algorithms that make managing those files efficient and safe.
 
 In the case of a SQL database, the files are abstracted away from us entirely. You just write SQL queries and let the DB handle the rest.
 
@@ -85,7 +84,7 @@ We will be using option 2: PostgreSQL. It's a production-ready, open-source SQL 
 
 A migration is just a `set of changes` to your database table.
 
-You can have as many migrations as needed as your requirements change over time. 
+You can have as many migrations as needed as your requirements change over time.
 
 For example, one migration might create a new table, one might delete a column, and one might add 2 new columns.
 
@@ -102,6 +101,7 @@ Authentication is the process of verifying who a user is. If you don't have a se
 Imagine if I could make an HTTP request to the YouTube API and upload a video to your channel. YouTube's authentication system prevents this from happening by verifying that I am who I say I am.
 
 ## Passwords
+
 Passwords are a common way to authenticate users. You know how they work: When a user signs up for a new account, they choose a password. When they log in, they enter their password again. The server will then compare the password they entered with the password that was stored in the database.
 
 There are 2 really important things to consider when storing passwords:
@@ -112,6 +112,7 @@ Password strength matters. If you allow users to choose weak passwords, they wil
 We won't be writing code to validate password strength in this course, but you get the idea: you can enforce rules in your HTTP handlers to make sure passwords are of a certain length and complexity
 
 ## Hashing
+
 On the other hand, we will be writing code to store passwords in a way that prevents them from being read by anyone who gets access to your database. This is called hashing. Hashing is a one-way function. It takes a string as input and produces a string as output. The output string is called a hash.
 
 # JWTS
@@ -124,15 +125,14 @@ Once the token is created by the server, the data in the token can't be changed 
 
 When your server issues a JWT to Bob, Bob can use that token to make requests as Bob to your API. Bob won't be able to change the token to make requests as Alice.
 
-
 ## Authentication With JWTs
 
-1) User submits username / password 
-2) JWT with User ID created and sent to CLIENT
-3) Client sends JWT in all future logged in requests
-4) On every authenticated request, server validates JWT 
+1. User submits username / password
+2. JWT with User ID created and sent to CLIENT
+3. Client sends JWT in all future logged in requests
+4. On every authenticated request, server validates JWT
 
-- It would be pretty annoying if you had to enter your username and password every time you wanted to make a request to an API. 
+- It would be pretty annoying if you had to enter your username and password every time you wanted to make a request to an API.
 
 Instead, after a user enters a username and password, our server should respond with a token (JWT) that's saved in the client's device.
 
@@ -142,11 +142,11 @@ The token remains valid until it expires, at which point the user will need to l
 
 ## Revoking JWTs
 
-One of the main benefits of JWTs is that they're stateless. 
+One of the main benefits of JWTs is that they're stateless.
 
-The server doesn't need to keep track of which users are logged in via JWT. 
+The server doesn't need to keep track of which users are logged in via JWT.
 
-The server just needs to issue a JWT to a user and the user can use that JWT to authenticate themselves. 
+The server just needs to issue a JWT to a user and the user can use that JWT to authenticate themselves.
 
 Statelessness is fast and scalable because your server doesn't need to consult a database to see if a user is currently logged in.
 
@@ -156,33 +156,70 @@ If a user's JWT is stolen, there's no easy way to stop the JWT from being used. 
 
 ### Access Tokens
 
-The JWTs we've been using so far are more specifically `access tokens`. 
+The JWTs we've been using so far are more specifically `access tokens`.
 
 Access tokens are used to authenticate a user to a server, and they provide access to PROTECTED resources.
 
 Access tokens are:
 
-* Stateless
-* Short-lived (15m-24h)
-* Irrevocable
+- Stateless
+- Short-lived (15m-24h)
+- Irrevocable
 
-<b> They must be short-lived because they can't be revoked.  </b>
+<b> They must be short-lived because they can't be revoked. </b>
 
 The shorter the lifespan, the more secure they are. Trouble is, this can create a poor user experience. We don't want users to have to log in every 15 minutes.
 
 ### REFRESH TOKENS = A SOLUTION
 
-Refresh tokens DON'T provide access to resources DIRECTLY, but they can be used to GET NEW ACCESS TOKENS. 
+Refresh tokens DON'T provide access to resources DIRECTLY, but they can be used to GET NEW ACCESS TOKENS.
 
 Refresh tokens are much longer lived, and importantly, they can be revoked. They are:
 
-* Stateful
-* Long-lived (24h-60d)
-* Revocable
+- Stateful
+- Long-lived (24h-60d)
+- Revocable
 
-Now we get the best of both worlds! 
+Now we get the best of both worlds!
 
-Our endpoints and servers that provide access to protected resources can use access tokens, which are fast, stateless, simple, and scalable. 
+Our endpoints and servers that provide access to protected resources can use access tokens, which are fast, stateless, simple, and scalable.
 
 On the other hand, refresh tokens are used to keep users logged in for longer periods of time, and they can be revoked if a user's access token is compromised.
+
+# Cookies
+
+HTTP cookies are one of the most talked about, but least understood, aspects of the web.
+
+When cookies are talked about in the news, they're usually implied to simply be privacy-stealing bad guys. While cookies can certainly invade your privacy, that's not what they are.
+
+## What Is an HTTP Cookie?
+
+A cookie is a small piece of data that a server sends to a client.
+
+The client then dutifully stores the cookie and sends it back to the server on subsequent requests.
+
+Cookies can store any arbitrary data:
+
+* A user's name or other tracking information
+* A JWT (refresh and access tokens)
+* Items in a shopping cart
+* etc.
+
+The server decides what to put in a cookie, and the client's job is simply to store it and send it back.
+
+## How Do Cookies Work?
+
+Simply put, cookies work through HTTP headers.
+
+Cookies are sent from the server to the client in the Set-Cookie header. 
+
+Cookies are most popular for web (browser-based) applications because browsers automatically send any cookies they have back to the server in the Cookie header.
+
+A good use-case for cookies is to serve as a more strict and secure transport layer for JWTs within the context of a browser-based application.
+
+For example, when using `httpOnly cookies`, you can ensure that 3rd party JavaScript that's being executed on your website can't access any cookies. 
+
+That's a lot better than storing JWTs in the browser's local storage, where it's easily accessible to any JavaScript running on the page.
+
+
 
