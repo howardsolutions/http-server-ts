@@ -208,14 +208,14 @@ Cookies can store any arbitrary data:
 The server decides what to put in a cookie, and the client's job is simply to store it and send it back.
 
 ## How Do Cookies Work?
-
+`
 <details>
   <summary><strong>Read more about how cookies work</strong></summary>
   
 Simply put, cookies work through HTTP headers.
 
 Cookies are sent from the server to the client in the Set-Cookie header.
-
+    
 Cookies are most popular for web (browser-based) applications because browsers automatically send any cookies they have back to the server in the Cookie header.
 
 A good use-case for cookies is to serve as a more strict and secure transport layer for JWTs within the context of a browser-based application.
@@ -225,3 +225,12 @@ For example, when using `httpOnly cookies`, you can ensure that 3rd party JavaSc
 That's a lot better than storing JWTs in the browser's local storage, where it's easily accessible to any JavaScript running on the page.
 
 </details>
+
+# Authorization
+
+While authentication is about verifying who a user is, authorization is about verifying WHAT a user is allowed to do.
+
+For example, a hypothetical YouTuber ThePrimeagen should be allowed to edit and delete the videos on his account, and everyone should be allowed to view them. Another absolutely-not-real YouTuber TEEJ should be able to view ThePrimeagen's videos, but not edit or delete them.
+
+Authorization logic is just the code that enforces these kinds of rules.
+
