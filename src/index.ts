@@ -4,7 +4,7 @@ import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createUser, deleteAllUsers, getUserByEmail, updateUserCredentials } from "./db/queries/users.js";
-import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
+import { createChirp, getAllChirps, getChirpById, deleteChirpById } from "./db/queries/chirps.js";
 import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken } from "./auth.js";
 import { UserResponse, LoginResponse } from "./schema.js";
 import { createRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
@@ -71,6 +71,7 @@ app.post("/api/chirps", handlerCreateChirp);
 app.post("/api/refresh", handlerRefreshAccessToken);
 app.post("/api/revoke", handlerRevokeRefreshToken);
 app.put("/api/users", handlerUpdateUser);
+app.delete("/api/chirps/:chirpID", handlerDeleteChirp);
 
 function handlerReadiness(req: express.Request, res: express.Response) {
   res.set("Content-Type", "text/plain; charset=utf-8");
@@ -341,6 +342,43 @@ async function handlerCreateChirp(req: express.Request, res: express.Response) {
     if (error instanceof Error && (error.message.includes("Authorization header") || error.message.includes("Invalid token") || error.message.includes("expired"))) {
       throw new UnauthorizedError("Invalid or missing authentication token");
     }
+    throw error;
+  }
+}
+
+async function handlerDeleteChirp(req: express.Request, res: express.Response) {
+  const { chirpID } = req.params;
+
+  try {
+    const token = getBearerToken(req);
+    const userId = validateJWT(token, config.jwtSecret);
+
+    const chirp = await getChirpById(chirpID);
+    if (!chirp) {
+      throw new NotFoundError("Chirp not found");
+    }
+
+    if (chirp.userId !== userId) {
+      throw new ForbiddenError("You are not allowed to delete this chirp");
+    }
+
+    const deleted = await deleteChirpById(chirpID);
+    if (!deleted) {
+      throw new NotFoundError("Chirp not found");
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Authorization header") ||
+        error.message.includes("Invalid token") ||
+        error.message.includes("expired"))
+    ) {
+      throw new UnauthorizedError("Invalid or missing authentication token");
+    }
+    if (error instanceof ForbiddenError) throw error;
+    if (error instanceof NotFoundError) throw error;
     throw error;
   }
 }

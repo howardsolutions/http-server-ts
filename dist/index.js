@@ -3,7 +3,7 @@ import { config } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { createUser, deleteAllUsers, getUserByEmail } from "./db/queries/users.js";
+import { createUser, deleteAllUsers, getUserByEmail, updateUserCredentials } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
 import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken } from "./auth.js";
 import { createRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
@@ -57,6 +57,7 @@ app.post("/api/login", handlerLogin);
 app.post("/api/chirps", handlerCreateChirp);
 app.post("/api/refresh", handlerRefreshAccessToken);
 app.post("/api/revoke", handlerRevokeRefreshToken);
+app.put("/api/users", handlerUpdateUser);
 function handlerReadiness(req, res) {
     res.set("Content-Type", "text/plain; charset=utf-8");
     res.send("OK");
@@ -292,6 +293,45 @@ async function handlerCreateChirp(req, res) {
         }
         if (error instanceof Error && (error.message.includes("Authorization header") || error.message.includes("Invalid token") || error.message.includes("expired"))) {
             throw new UnauthorizedError("Invalid or missing authentication token");
+        }
+        throw error;
+    }
+}
+async function handlerUpdateUser(req, res) {
+    const { email, password } = req.body;
+    if (!email || typeof email !== "string") {
+        throw new BadRequestError("Email is required and must be a string");
+    }
+    if (!password || typeof password !== "string") {
+        throw new BadRequestError("Password is required and must be a string");
+    }
+    try {
+        const token = getBearerToken(req);
+        const userId = validateJWT(token, config.jwtSecret);
+        const hashed = await hashPassword(password);
+        const updated = await updateUserCredentials(userId, email, hashed);
+        if (!updated) {
+            throw new NotFoundError("User not found");
+        }
+        const response = {
+            id: updated.id,
+            createdAt: updated.createdAt,
+            updatedAt: updated.updatedAt,
+            email: updated.email,
+        };
+        res.status(200).json(response);
+    }
+    catch (error) {
+        if (error instanceof Error &&
+            (error.message.includes("Authorization header") ||
+                error.message.includes("Invalid token") ||
+                error.message.includes("expired"))) {
+            throw new UnauthorizedError("Invalid or missing authentication token");
+        }
+        if (error instanceof NotFoundError)
+            throw error;
+        if (error instanceof Error && error.message.includes("duplicate key")) {
+            throw new BadRequestError("User with this email already exists");
         }
         throw error;
     }
