@@ -5,8 +5,9 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createUser, deleteAllUsers, getUserByEmail } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
-import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT } from "./auth.js";
+import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken } from "./auth.js";
 import { UserResponse, LoginResponse } from "./schema.js";
+import { createRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
 
 const app = express();
 
@@ -67,6 +68,8 @@ app.post("/admin/reset", handlerReset);
 app.post("/api/users", handlerCreateUser);
 app.post("/api/login", handlerLogin);
 app.post("/api/chirps", handlerCreateChirp);
+app.post("/api/refresh", handlerRefreshAccessToken);
+app.post("/api/revoke", handlerRevokeRefreshToken);
 
 function handlerReadiness(req: express.Request, res: express.Response) {
   res.set("Content-Type", "text/plain; charset=utf-8");
@@ -139,7 +142,7 @@ async function handlerCreateUser(req: express.Request, res: express.Response) {
 }
 
 async function handlerLogin(req: express.Request, res: express.Response) {
-  const { email, password, expiresInSeconds } = req.body;
+  const { email, password } = req.body;
 
   if (!email || typeof email !== "string") {
     throw new BadRequestError("Email is required and must be a string");
@@ -147,13 +150,6 @@ async function handlerLogin(req: express.Request, res: express.Response) {
 
   if (!password || typeof password !== "string") {
     throw new BadRequestError("Password is required and must be a string");
-  }
-
-  // Validate expiresInSeconds if provided
-  if (expiresInSeconds !== undefined) {
-    if (typeof expiresInSeconds !== "number" || expiresInSeconds <= 0) {
-      throw new BadRequestError("expiresInSeconds must be a positive number");
-    }
   }
 
   try {
@@ -171,19 +167,16 @@ async function handlerLogin(req: express.Request, res: express.Response) {
       throw new UnauthorizedError("Incorrect email or password");
     }
 
-    // Determine token expiration time
-    let tokenExpiration: number;
-    
-    if (expiresInSeconds !== undefined) {
-      // Cap at 1 hour (3600 seconds) if client specifies more
-      tokenExpiration = Math.min(expiresInSeconds, 3600);
-    } else {
-      // Default to 1 hour
-      tokenExpiration = 3600;
-    }
-
-    // Generate JWT token
-    const token = makeJWT(user.id, tokenExpiration, config.jwtSecret);
+    // Access tokens expire in 1 hour
+    const token = makeJWT(user.id, 3600, config.jwtSecret);
+    // Create a refresh token that expires in 60 days
+    const refreshToken = makeRefreshToken();
+    const sixtyDaysInMs = 60 * 24 * 60 * 60 * 1000;
+    await createRefreshToken({
+      token: refreshToken,
+      userId: user.id,
+      expiresAt: new Date(Date.now() + sixtyDaysInMs),
+    });
 
     // Return user with token
     const loginResponse: LoginResponse = {
@@ -191,13 +184,49 @@ async function handlerLogin(req: express.Request, res: express.Response) {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       email: user.email,
-      token: token
+      token: token,
+      refreshToken: refreshToken
     };
 
     res.status(200).json(loginResponse);
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       throw error;
+    }
+    throw error;
+  }
+}
+
+async function handlerRefreshAccessToken(req: express.Request, res: express.Response) {
+  try {
+    const tokenString = getBearerToken(req);
+    const user = await getUserFromRefreshToken(tokenString);
+    if (!user) {
+      throw new UnauthorizedError("Invalid or expired refresh token");
+    }
+    const accessToken = makeJWT(user.id, 3600, config.jwtSecret);
+    res.status(200).json({ token: accessToken });
+  } catch (error) {
+    if (error instanceof Error && (error.message.includes("Authorization header") || error.message.includes("refresh token"))) {
+      throw new UnauthorizedError("Invalid or missing refresh token");
+    }
+    if (error instanceof UnauthorizedError) throw error;
+    throw error;
+  }
+}
+
+async function handlerRevokeRefreshToken(req: express.Request, res: express.Response) {
+  try {
+    const tokenString = getBearerToken(req);
+    const record = await revokeRefreshToken(tokenString);
+    if (!record) {
+      throw new UnauthorizedError("Invalid refresh token");
+    }
+    res.status(204).send();
+  } catch (error) {
+    if (error instanceof UnauthorizedError) throw error;
+    if (error instanceof Error && error.message.includes("Authorization header")) {
+      throw new UnauthorizedError("Invalid or missing refresh token");
     }
     throw error;
   }

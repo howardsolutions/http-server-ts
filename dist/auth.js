@@ -1,5 +1,6 @@
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
+import crypto from "node:crypto";
 /**
  * Hash a password using argon2
  * @param password - The plain text password to hash
@@ -84,4 +85,10 @@ export function validateJWT(tokenString, secret) {
         }
         throw error;
     }
+}
+/**
+ * Create a random 256-bit (32 byte) refresh token encoded as hex
+ */
+export function makeRefreshToken() {
+    return crypto.randomBytes(32).toString("hex");
 }

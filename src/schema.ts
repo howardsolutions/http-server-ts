@@ -23,8 +23,21 @@ export const chirps = pgTable("chirps", {
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
 });
 
+export const refreshTokens = pgTable("refresh_tokens", {
+    token: varchar("token", { length: 256 }).primaryKey(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at").notNull(),
+    revokedAt: timestamp("revoked_at"),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
     chirps: many(chirps),
+    refreshTokens: many(refreshTokens),
 }));
 
 export const chirpsRelations = relations(chirps, ({ one }) => ({
@@ -36,6 +49,7 @@ export const chirpsRelations = relations(chirps, ({ one }) => ({
 
 export type NewUser = typeof users.$inferInsert;
 export type NewChirp = typeof chirps.$inferInsert;
+export type NewRefreshToken = typeof refreshTokens.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type UserResponse = Omit<User, 'hashed_password'>;
-export type LoginResponse = UserResponse & { token: string };
+export type LoginResponse = UserResponse & { token: string; refreshToken: string };

@@ -20,8 +20,20 @@ export const chirps = pgTable("chirps", {
     body: varchar("body", { length: 140 }).notNull(),
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
 });
+export const refreshTokens = pgTable("refresh_tokens", {
+    token: varchar("token", { length: 256 }).primaryKey(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at").notNull(),
+    revokedAt: timestamp("revoked_at"),
+});
 export const usersRelations = relations(users, ({ many }) => ({
     chirps: many(chirps),
+    refreshTokens: many(refreshTokens),
 }));
 export const chirpsRelations = relations(chirps, ({ one }) => ({
     user: one(users, {
