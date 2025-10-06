@@ -41,6 +41,23 @@ export function makeJWT(userID, expiresIn, secret) {
     return jwt.sign(payload, secret);
 }
 /**
+ * Extract bearer token from Authorization header
+ * @param req - Express request object
+ * @returns string - The token string without "Bearer " prefix
+ * @throws Error if Authorization header is missing or malformed
+ */
+export function getBearerToken(req) {
+    const authHeader = req.get("Authorization");
+    if (!authHeader || authHeader.trim() === "") {
+        throw new Error("Authorization header is missing");
+    }
+    const trimmedHeader = authHeader.trim();
+    if (!trimmedHeader.startsWith("Bearer ")) {
+        throw new Error("Authorization header must start with 'Bearer '");
+    }
+    return trimmedHeader.substring(7).trim();
+}
+/**
  * Validate a JWT token and extract the user ID
  * @param tokenString - The JWT token string to validate
  * @param secret - Secret key to verify the token signature

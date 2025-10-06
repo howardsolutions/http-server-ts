@@ -15,5 +15,6 @@ export const config = {
         url: envOrThrow("DB_URL"),
         migrationConfig,
     },
-    platform: process.env.PLATFORM || "prod",
+    platform: process.env.PLATFORM || "dev",
+    jwtSecret: envOrThrow("JWT_SECRET"),
 };

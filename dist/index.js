@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createUser, deleteAllUsers, getUserByEmail } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
-import { hashPassword, checkPasswordHash } from "./auth.js";
+import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT } from "./auth.js";
 const app = express();
 // Run migrations on startup
 const migrationClient = postgres(config.db.url, { max: 1 });
@@ -113,12 +113,18 @@ async function handlerCreateUser(req, res) {
     }
 }
 async function handlerLogin(req, res) {
-    const { email, password } = req.body;
+    const { email, password, expiresInSeconds } = req.body;
     if (!email || typeof email !== "string") {
         throw new BadRequestError("Email is required and must be a string");
     }
     if (!password || typeof password !== "string") {
         throw new BadRequestError("Password is required and must be a string");
+    }
+    // Validate expiresInSeconds if provided
+    if (expiresInSeconds !== undefined) {
+        if (typeof expiresInSeconds !== "number" || expiresInSeconds <= 0) {
+            throw new BadRequestError("expiresInSeconds must be a positive number");
+        }
     }
     try {
         // Look up user by email
@@ -131,14 +137,27 @@ async function handlerLogin(req, res) {
         if (!passwordMatches) {
             throw new UnauthorizedError("Incorrect email or password");
         }
-        // Return user without the hashed password
-        const userResponse = {
+        // Determine token expiration time
+        let tokenExpiration;
+        if (expiresInSeconds !== undefined) {
+            // Cap at 1 hour (3600 seconds) if client specifies more
+            tokenExpiration = Math.min(expiresInSeconds, 3600);
+        }
+        else {
+            // Default to 1 hour
+            tokenExpiration = 3600;
+        }
+        // Generate JWT token
+        const token = makeJWT(user.id, tokenExpiration, config.jwtSecret);
+        // Return user with token
+        const loginResponse = {
             id: user.id,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
-            email: user.email
+            email: user.email,
+            token: token
         };
-        res.status(200).json(userResponse);
+        res.status(200).json(loginResponse);
     }
     catch (error) {
         if (error instanceof UnauthorizedError) {
@@ -201,13 +220,10 @@ async function handlerGetChirpById(req, res) {
     }
 }
 async function handlerCreateChirp(req, res) {
-    const { body, userId } = req.body;
+    const { body } = req.body;
     // Validate request payload
     if (typeof body !== "string") {
         throw new BadRequestError("Body is required and must be a string");
-    }
-    if (typeof userId !== "string") {
-        throw new BadRequestError("UserId is required and must be a string");
     }
     // Validate chirp length
     if (body.length > 140) {
@@ -222,6 +238,9 @@ async function handlerCreateChirp(req, res) {
         throw new BadRequestError("Chirp contains banned words");
     }
     try {
+        // Extract and validate JWT token
+        const token = getBearerToken(req);
+        const userId = validateJWT(token, config.jwtSecret);
         const chirp = await createChirp({
             body,
             userId,
@@ -237,6 +256,9 @@ async function handlerCreateChirp(req, res) {
     catch (error) {
         if (error instanceof Error && error.message.includes("foreign key")) {
             throw new BadRequestError("User not found");
+        }
+        if (error instanceof Error && (error.message.includes("Authorization header") || error.message.includes("Invalid token") || error.message.includes("expired"))) {
+            throw new UnauthorizedError("Invalid or missing authentication token");
         }
         throw error;
     }

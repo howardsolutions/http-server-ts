@@ -38,3 +38,4 @@ export type NewUser = typeof users.$inferInsert;
 export type NewChirp = typeof chirps.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type UserResponse = Omit<User, 'hashed_password'>;
+export type LoginResponse = UserResponse & { token: string };

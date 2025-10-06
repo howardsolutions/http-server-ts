@@ -5,8 +5,8 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createUser, deleteAllUsers, getUserByEmail } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
-import { hashPassword, checkPasswordHash } from "./auth.js";
-import { UserResponse } from "./schema.js";
+import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT } from "./auth.js";
+import { UserResponse, LoginResponse } from "./schema.js";
 
 const app = express();
 
@@ -139,7 +139,7 @@ async function handlerCreateUser(req: express.Request, res: express.Response) {
 }
 
 async function handlerLogin(req: express.Request, res: express.Response) {
-  const { email, password } = req.body;
+  const { email, password, expiresInSeconds } = req.body;
 
   if (!email || typeof email !== "string") {
     throw new BadRequestError("Email is required and must be a string");
@@ -147,6 +147,13 @@ async function handlerLogin(req: express.Request, res: express.Response) {
 
   if (!password || typeof password !== "string") {
     throw new BadRequestError("Password is required and must be a string");
+  }
+
+  // Validate expiresInSeconds if provided
+  if (expiresInSeconds !== undefined) {
+    if (typeof expiresInSeconds !== "number" || expiresInSeconds <= 0) {
+      throw new BadRequestError("expiresInSeconds must be a positive number");
+    }
   }
 
   try {
@@ -164,15 +171,30 @@ async function handlerLogin(req: express.Request, res: express.Response) {
       throw new UnauthorizedError("Incorrect email or password");
     }
 
-    // Return user without the hashed password
-    const userResponse: UserResponse = {
+    // Determine token expiration time
+    let tokenExpiration: number;
+    
+    if (expiresInSeconds !== undefined) {
+      // Cap at 1 hour (3600 seconds) if client specifies more
+      tokenExpiration = Math.min(expiresInSeconds, 3600);
+    } else {
+      // Default to 1 hour
+      tokenExpiration = 3600;
+    }
+
+    // Generate JWT token
+    const token = makeJWT(user.id, tokenExpiration, config.jwtSecret);
+
+    // Return user with token
+    const loginResponse: LoginResponse = {
       id: user.id,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      email: user.email
+      email: user.email,
+      token: token
     };
 
-    res.status(200).json(userResponse);
+    res.status(200).json(loginResponse);
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       throw error;
@@ -243,15 +265,11 @@ async function handlerGetChirpById(req: express.Request, res: express.Response) 
 }
 
 async function handlerCreateChirp(req: express.Request, res: express.Response) {
-  const { body, userId } = req.body;
+  const { body } = req.body;
 
   // Validate request payload
   if (typeof body !== "string") {
     throw new BadRequestError("Body is required and must be a string");
-  }
-
-  if (typeof userId !== "string") {
-    throw new BadRequestError("UserId is required and must be a string");
   }
 
   // Validate chirp length
@@ -270,6 +288,10 @@ async function handlerCreateChirp(req: express.Request, res: express.Response) {
   }
 
   try {
+    // Extract and validate JWT token
+    const token = getBearerToken(req);
+    const userId = validateJWT(token, config.jwtSecret);
+
     const chirp = await createChirp({
       body,
       userId,
@@ -285,6 +307,9 @@ async function handlerCreateChirp(req: express.Request, res: express.Response) {
   } catch (error) {
     if (error instanceof Error && error.message.includes("foreign key")) {
       throw new BadRequestError("User not found");
+    }
+    if (error instanceof Error && (error.message.includes("Authorization header") || error.message.includes("Invalid token") || error.message.includes("expired"))) {
+      throw new UnauthorizedError("Invalid or missing authentication token");
     }
     throw error;
   }

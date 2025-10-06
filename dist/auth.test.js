@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { makeJWT, validateJWT, hashPassword, checkPasswordHash } from "./auth";
+import { makeJWT, validateJWT, hashPassword, checkPasswordHash, getBearerToken } from "./auth";
 describe("Password Hashing", () => {
     const password1 = "correctPassword123!";
     const password2 = "anotherPassword456!";
@@ -103,5 +103,80 @@ describe("JWT Creation and Validation", () => {
         expect(shortPayload.exp - shortPayload.iat).toBe(shortExpiry);
         expect(longPayload.exp - longPayload.iat).toBe(longExpiry);
         expect(longPayload.exp).toBeGreaterThan(shortPayload.exp);
+    });
+});
+describe("Bearer Token Extraction", () => {
+    it("should extract token from valid Authorization header", () => {
+        const mockReq = {
+            get: (header) => {
+                if (header === "Authorization") {
+                    return "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpXVCJ9";
+                }
+                return undefined;
+            }
+        };
+        const token = getBearerToken(mockReq);
+        expect(token).toBe("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpXVCJ9");
+    });
+    it("should handle Authorization header with extra whitespace", () => {
+        const mockReq = {
+            get: (header) => {
+                if (header === "Authorization") {
+                    return "  Bearer   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpXVCJ9  ";
+                }
+                return undefined;
+            }
+        };
+        const token = getBearerToken(mockReq);
+        expect(token).toBe("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpXVCJ9");
+    });
+    it("should throw error when Authorization header is missing", () => {
+        const mockReq = {
+            get: (header) => {
+                return undefined;
+            }
+        };
+        expect(() => {
+            getBearerToken(mockReq);
+        }).toThrow("Authorization header is missing");
+    });
+    it("should throw error when Authorization header does not start with Bearer", () => {
+        const mockReq = {
+            get: (header) => {
+                if (header === "Authorization") {
+                    return "Basic dXNlcjpwYXNzd29yZA==";
+                }
+                return undefined;
+            }
+        };
+        expect(() => {
+            getBearerToken(mockReq);
+        }).toThrow("Authorization header must start with 'Bearer '");
+    });
+    it("should throw error when Authorization header is empty", () => {
+        const mockReq = {
+            get: (header) => {
+                if (header === "Authorization") {
+                    return "";
+                }
+                return undefined;
+            }
+        };
+        expect(() => {
+            getBearerToken(mockReq);
+        }).toThrow("Authorization header is missing");
+    });
+    it("should throw error when Authorization header is just 'Bearer'", () => {
+        const mockReq = {
+            get: (header) => {
+                if (header === "Authorization") {
+                    return "Bearer";
+                }
+                return undefined;
+            }
+        };
+        expect(() => {
+            getBearerToken(mockReq);
+        }).toThrow("Authorization header must start with 'Bearer '");
     });
 });
