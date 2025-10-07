@@ -22,6 +22,7 @@ type APIConfig = {
     db: DBConfig;
     platform: string;
     jwtSecret: string;
+    polkaKey: string;
 };
 
 const migrationConfig: MigrationConfig = {
@@ -36,4 +37,5 @@ export const config: APIConfig = {
     },
     platform: process.env.PLATFORM || "dev",
     jwtSecret: envOrThrow("JWT_SECRET"),
+    polkaKey: envOrThrow("POLKA_KEY"),
 };

@@ -17,4 +17,5 @@ export const config = {
     },
     platform: process.env.PLATFORM || "dev",
     jwtSecret: envOrThrow("JWT_SECRET"),
+    polkaKey: envOrThrow("POLKA_KEY"),
 };

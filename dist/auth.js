@@ -59,6 +59,26 @@ export function getBearerToken(req) {
     return trimmedHeader.substring(7).trim();
 }
 /**
+ * Extract API key from Authorization header in the format: "ApiKey <KEY>"
+ * @throws Error if header missing or malformed
+ */
+export function getAPIKey(req) {
+    const authHeader = req.get("Authorization");
+    if (!authHeader || authHeader.trim() === "") {
+        throw new Error("Authorization header is missing");
+    }
+    const trimmedHeader = authHeader.trim();
+    const prefix = "ApiKey ";
+    if (!trimmedHeader.startsWith(prefix)) {
+        throw new Error("Authorization header must start with 'ApiKey '");
+    }
+    const key = trimmedHeader.substring(prefix.length).trim();
+    if (key.length === 0) {
+        throw new Error("API key is missing");
+    }
+    return key;
+}
+/**
  * Validate a JWT token and extract the user ID
  * @param tokenString - The JWT token string to validate
  * @param secret - Secret key to verify the token signature

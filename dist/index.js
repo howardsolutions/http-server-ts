@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createUser, deleteAllUsers, getUserByEmail, updateUserCredentials, upgradeUserToChirpyRed } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById, deleteChirpById } from "./db/queries/chirps.js";
-import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken } from "./auth.js";
+import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken, getAPIKey } from "./auth.js";
 import { createRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
 const app = express();
 // Run migrations on startup
@@ -375,6 +375,16 @@ async function handlerUpdateUser(req, res) {
 }
 async function handlerPolkaWebhook(req, res) {
     const { event, data } = req.body || {};
+    // verify api key first
+    try {
+        const key = getAPIKey(req);
+        if (key !== config.polkaKey) {
+            throw new UnauthorizedError("Invalid API key");
+        }
+    }
+    catch (e) {
+        throw new UnauthorizedError("Invalid or missing API key");
+    }
     if (event !== "user.upgraded") {
         return res.status(204).send();
     }

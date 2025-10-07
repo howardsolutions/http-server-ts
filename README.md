@@ -268,3 +268,17 @@ There are just a couple of things to keep in mind when building a webhook handle
 ## Are Webhooks and Websockets the Same Thing?
 
 Nope! A websocket is a persistent connection between a client and a server. Websockets are typically used for real-time communication, like chat apps. Webhooks are a one-way communication from a third-party service to your server.
+
+
+# API Keys
+
+You may have noticed that there is an issue with our webhook handler: it's not secure!
+
+Anyone can send a request to our webhook handler, and we'll process it. 
+That means that if Chirpy users figured out our API documentation, they could simply upgrade their account without paying!
+
+Luckily, Polka has a solution for this: API keys. 
+
+Polka provided us with an API key, and if a request to our webhook handler doesn't use that API key, we should reject the request.
+
+This ensures that only Polka can tell us to upgrade a user's account.
