@@ -282,3 +282,27 @@ Luckily, Polka has a solution for this: API keys.
 Polka provided us with an API key, and if a request to our webhook handler doesn't use that API key, we should reject the request.
 
 This ensures that only Polka can tell us to upgrade a user's account.
+
+# Documentation
+
+When you're designing a server-side API, no one is going to know how to interact with it unless you tell them. 
+
+Are you going to force the front-end developers, mobile developers, or other back-end service teams to sift through your code and reverse engineer your API?
+
+Of course not! You're a good person. You're going to write documentation.
+
+## First Be Obvious, Then Document It Anyway
+
+We've talked a lot about how your REST API should follow conventions as much as possible. That said, the conventions are not enough. 
+
+You still need to document your endpoints. Without documentation, no one will know:
+
+- Which resources are available
+- What the path to the endpoints are
+- Which HTTP methods are supported for each resource
+- What the shape of the data is for each resource
+etc.
+
+One type of endpoint that's nearly impossible to interact with without documentation is a plural GET endpoint - that is, an endpoint that returns a list of resources. 
+They often have different sorting, filtering, and pagination features.
+
