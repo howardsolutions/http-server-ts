@@ -29,6 +29,13 @@
       "when": 1759740120438,
       "tag": "0003_long_shiver_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1759800000000,
+      "tag": "0004_add_is_chirpy_red",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { config } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { createUser, deleteAllUsers, getUserByEmail, updateUserCredentials } from "./db/queries/users.js";
+import { createUser, deleteAllUsers, getUserByEmail, updateUserCredentials, upgradeUserToChirpyRed } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById, deleteChirpById } from "./db/queries/chirps.js";
 import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken } from "./auth.js";
 import { UserResponse, LoginResponse } from "./schema.js";
@@ -72,6 +72,7 @@ app.post("/api/refresh", handlerRefreshAccessToken);
 app.post("/api/revoke", handlerRevokeRefreshToken);
 app.put("/api/users", handlerUpdateUser);
 app.delete("/api/chirps/:chirpID", handlerDeleteChirp);
+app.post("/api/polka/webhooks", handlerPolkaWebhook);
 
 function handlerReadiness(req: express.Request, res: express.Response) {
   res.set("Content-Type", "text/plain; charset=utf-8");
@@ -131,7 +132,8 @@ async function handlerCreateUser(req: express.Request, res: express.Response) {
       id: user.id,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      email: user.email
+      email: user.email,
+      is_chirpy_red: user.is_chirpy_red
     };
 
     res.status(201).json(userResponse);
@@ -186,6 +188,7 @@ async function handlerLogin(req: express.Request, res: express.Response) {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       email: user.email,
+      is_chirpy_red: user.is_chirpy_red,
       token: token,
       refreshToken: refreshToken
     };
@@ -430,6 +433,23 @@ async function handlerUpdateUser(req: express.Request, res: express.Response) {
   }
 }
 
+async function handlerPolkaWebhook(req: express.Request, res: express.Response) {
+  const { event, data } = req.body || {};
+  if (event !== "user.upgraded") {
+    return res.status(204).send();
+  }
+
+  const userId = data?.userId;
+  if (!userId || typeof userId !== "string") {
+    throw new BadRequestError("Invalid webhook payload");
+  }
+
+  const updated = await upgradeUserToChirpyRed(userId);
+  if (!updated) {
+    throw new NotFoundError("User not found");
+  }
+  return res.status(204).send();
+}
 // centralized error-handling middleware
 app.use(function errorHandler(
   err: unknown,

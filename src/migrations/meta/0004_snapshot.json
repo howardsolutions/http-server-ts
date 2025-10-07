@@ -1,0 +1,35 @@
+{
+  "id": "added-is-chirpy-red",
+  "prevId": "c1361c94-530d-4c6d-b048-8ce686460374",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {"name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()"},
+        "created_at": {"name": "created_at", "type": "timestamp", "primaryKey": false, "notNull": true, "default": "now()"},
+        "updated_at": {"name": "updated_at", "type": "timestamp", "primaryKey": false, "notNull": true, "default": "now()"},
+        "email": {"name": "email", "type": "varchar(256)", "primaryKey": false, "notNull": true},
+        "hashed_password": {"name": "hashed_password", "type": "varchar", "primaryKey": false, "notNull": true, "default": "'unset'"},
+        "is_chirpy_red": {"name": "is_chirpy_red", "type": "boolean", "primaryKey": false, "notNull": true, "default": "false"}
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {"users_email_unique": {"name": "users_email_unique", "nullsNotDistinct": false, "columns": ["email"]}},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {"columns": {}, "schemas": {}, "tables": {}}
+}
+

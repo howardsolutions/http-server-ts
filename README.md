@@ -234,3 +234,23 @@ For example, a hypothetical YouTuber ThePrimeagen should be allowed to edit and 
 
 Authorization logic is just the code that enforces these kinds of rules.
 
+# Webhooks
+
+Webhooks sound like a scary advanced concept, but they're quite simple.
+
+A webhook is an event notification sent to your server by an external service when something happens. 
+
+While both webhooks and cron jobs can trigger actions on your server, a key difference is that webhooks are initiated externally (by another service), whereas cron jobs are scheduled tasks that your own server runs at specific times.
+
+The only real difference between a webhook and a typical HTTP request is that the system making the request is an automated system, not a human loading a webpage or web app. 
+
+As such, webhook handlers must be idempotent because the system on the other side may retry the request multiple times.
+
+## Idempo... What?
+
+Idempotent, or "idempotence", is a fancy word that means "the same result no matter how many times you do it"
+
+For example, your typical POST /api/chirps (create a chirp) endpoint will not be idempotent. If you send the same request twice, you'll end up with two chirps with the same information but different IDs.
+
+Webhooks, on the other hand, should be idempotent, and it's typically easy to build them this way because the client sends some kind of "event" and usually provides its own unique ID.
+
