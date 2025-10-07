@@ -133,7 +133,7 @@ async function handlerCreateUser(req: express.Request, res: express.Response) {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       email: user.email,
-      is_chirpy_red: user.is_chirpy_red
+      isChirpyRed: user.is_chirpy_red
     };
 
     res.status(201).json(userResponse);
@@ -188,7 +188,7 @@ async function handlerLogin(req: express.Request, res: express.Response) {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       email: user.email,
-      is_chirpy_red: user.is_chirpy_red,
+      isChirpyRed: user.is_chirpy_red,
       token: token,
       refreshToken: refreshToken
     };
@@ -413,6 +413,7 @@ async function handlerUpdateUser(req: express.Request, res: express.Response) {
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
       email: updated.email,
+      isChirpyRed: updated.is_chirpy_red,
     };
 
     res.status(200).json(response);

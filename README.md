@@ -254,3 +254,17 @@ For example, your typical POST /api/chirps (create a chirp) endpoint will not be
 
 Webhooks, on the other hand, should be idempotent, and it's typically easy to build them this way because the client sends some kind of "event" and usually provides its own unique ID.
 
+
+## Webhooks Review
+
+There are just a couple of things to keep in mind when building a webhook handler:
+
+- The third-party system will probably retry requests multiple times, so your handler should be idempotent.
+
+- Be extra careful to never "acknowledge" a webhook request unless you processed it successfully. By sending a 2XX code, you're telling the third-party system that you processed the request successfully, and they'll stop retrying it.
+
+- When you're writing a server, you typically get to define the API. However, when you're integrating a webhook from a service like Stripe, you'll probably need to adhere to their API: they'll tell you what shape the events will be sent in.
+
+## Are Webhooks and Websockets the Same Thing?
+
+Nope! A websocket is a persistent connection between a client and a server. Websockets are typically used for real-time communication, like chat apps. Webhooks are a one-way communication from a third-party service to your server.

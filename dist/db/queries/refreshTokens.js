@@ -20,6 +20,7 @@ export async function getUserFromRefreshToken(tokenString) {
         updatedAt: users.updatedAt,
         email: users.email,
         hashed_password: users.hashed_password,
+        is_chirpy_red: users.is_chirpy_red,
     })
         .from(refreshTokens)
         .innerJoin(users, eq(refreshTokens.userId, users.id))

@@ -3,7 +3,7 @@ import { config } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { createUser, deleteAllUsers, getUserByEmail, updateUserCredentials } from "./db/queries/users.js";
+import { createUser, deleteAllUsers, getUserByEmail, updateUserCredentials, upgradeUserToChirpyRed } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById, deleteChirpById } from "./db/queries/chirps.js";
 import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken } from "./auth.js";
 import { createRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
@@ -59,6 +59,7 @@ app.post("/api/refresh", handlerRefreshAccessToken);
 app.post("/api/revoke", handlerRevokeRefreshToken);
 app.put("/api/users", handlerUpdateUser);
 app.delete("/api/chirps/:chirpID", handlerDeleteChirp);
+app.post("/api/polka/webhooks", handlerPolkaWebhook);
 function handlerReadiness(req, res) {
     res.set("Content-Type", "text/plain; charset=utf-8");
     res.send("OK");
@@ -106,7 +107,8 @@ async function handlerCreateUser(req, res) {
             id: user.id,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
-            email: user.email
+            email: user.email,
+            isChirpyRed: user.is_chirpy_red
         };
         res.status(201).json(userResponse);
     }
@@ -152,6 +154,7 @@ async function handlerLogin(req, res) {
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
             email: user.email,
+            isChirpyRed: user.is_chirpy_red,
             token: token,
             refreshToken: refreshToken
         };
@@ -351,6 +354,7 @@ async function handlerUpdateUser(req, res) {
             createdAt: updated.createdAt,
             updatedAt: updated.updatedAt,
             email: updated.email,
+            isChirpyRed: updated.is_chirpy_red,
         };
         res.status(200).json(response);
     }
@@ -368,6 +372,21 @@ async function handlerUpdateUser(req, res) {
         }
         throw error;
     }
+}
+async function handlerPolkaWebhook(req, res) {
+    const { event, data } = req.body || {};
+    if (event !== "user.upgraded") {
+        return res.status(204).send();
+    }
+    const userId = data?.userId;
+    if (!userId || typeof userId !== "string") {
+        throw new BadRequestError("Invalid webhook payload");
+    }
+    const updated = await upgradeUserToChirpyRed(userId);
+    if (!updated) {
+        throw new NotFoundError("User not found");
+    }
+    return res.status(204).send();
 }
 // centralized error-handling middleware
 app.use(function errorHandler(err, req, res, next) {

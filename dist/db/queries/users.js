@@ -21,3 +21,11 @@ export async function updateUserCredentials(userId, email, hashedPassword) {
         .returning();
     return result || null;
 }
+export async function upgradeUserToChirpyRed(userId) {
+    const [result] = await db
+        .update(users)
+        .set({ is_chirpy_red: true })
+        .where(eq(users.id, userId))
+        .returning();
+    return result || null;
+}

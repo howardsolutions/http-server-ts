@@ -1,4 +1,4 @@
-CREATE TABLE "chirps" (
+CREATE TABLE IF NOT EXISTS "chirps" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
@@ -6,4 +6,11 @@ CREATE TABLE "chirps" (
 	"user_id" uuid NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "chirps" ADD CONSTRAINT "chirps_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chirps_user_id_users_id_fk'
+    ) THEN
+        ALTER TABLE "chirps" ADD CONSTRAINT "chirps_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;

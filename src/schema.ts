@@ -52,5 +52,5 @@ export type NewUser = typeof users.$inferInsert;
 export type NewChirp = typeof chirps.$inferInsert;
 export type NewRefreshToken = typeof refreshTokens.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type UserResponse = Omit<User, 'hashed_password'>;
+export type UserResponse = Omit<User, 'hashed_password' | 'is_chirpy_red'> & { isChirpyRed: boolean };
 export type LoginResponse = UserResponse & { token: string; refreshToken: string };
