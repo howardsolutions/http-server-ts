@@ -222,7 +222,12 @@ function middlewareLogResponses(req, res, next) {
 async function handlerGetAllChirps(req, res) {
     try {
         const authorId = req.query.authorId;
-        const chirps = await getAllChirps(authorId);
+        const sort = req.query.sort;
+        // Validate sort parameter
+        if (sort && sort !== 'asc' && sort !== 'desc') {
+            throw new BadRequestError("Sort parameter must be 'asc' or 'desc'");
+        }
+        const chirps = await getAllChirps(authorId, sort);
         const formattedChirps = chirps.map(chirp => ({
             id: chirp.id,
             createdAt: chirp.createdAt,

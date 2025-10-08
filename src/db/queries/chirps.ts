@@ -1,18 +1,29 @@
 import { db } from "../index.js";
 import { NewChirp, chirps } from "../../schema.js";
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 
 export async function createChirp(chirp: NewChirp) {
     const [result] = await db.insert(chirps).values(chirp).returning();
     return result;
 }
 
-export async function getAllChirps(authorId?: string) {
+export async function getAllChirps(authorId?: string, sort?: 'asc' | 'desc') {
+    let result;
+    
     if (authorId) {
-        const result = await db.select().from(chirps).where(eq(chirps.userId, authorId)).orderBy(asc(chirps.createdAt));
-        return result;
+        result = await db.select().from(chirps).where(eq(chirps.userId, authorId));
+    } else {    
+        result = await db.select().from(chirps);
     }
-    const result = await db.select().from(chirps).orderBy(asc(chirps.createdAt));
+    
+    // Apply sorting in-memory as suggested
+    const sortOrder = sort || 'asc';
+    if (sortOrder === 'desc') {
+        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else {
+        result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    
     return result;
 }
 

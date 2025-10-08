@@ -194,7 +194,7 @@ async function handlerLogin(req: express.Request, res: express.Response) {
     };
 
     res.status(200).json(loginResponse);
-  } catch (error) {
+  } catch (error) { 
     if (error instanceof UnauthorizedError) {
       throw error;
     }
@@ -258,7 +258,14 @@ function middlewareLogResponses(req: express.Request, res: express.Response, nex
 async function handlerGetAllChirps(req: express.Request, res: express.Response) { 
   try {
     const authorId = req.query.authorId as string | undefined;
-    const chirps = await getAllChirps(authorId);
+    const sort = req.query.sort as 'asc' | 'desc' | undefined;
+    
+    // Validate sort parameter
+    if (sort && sort !== 'asc' && sort !== 'desc') {
+      throw new BadRequestError("Sort parameter must be 'asc' or 'desc'");
+    }
+    
+    const chirps = await getAllChirps(authorId, sort);
     
     const formattedChirps = chirps.map(chirp => ({
       id: chirp.id,
