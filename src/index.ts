@@ -15,7 +15,7 @@ const app = express();
 const migrationClient = postgres(config.db.url, { max: 1 });
 
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
-await migrationClient.end();
+await migrationClient.end();  
 
 const PORT = 8080;
 
@@ -255,9 +255,10 @@ function middlewareLogResponses(req: express.Request, res: express.Response, nex
   next()
 };
 
-async function handlerGetAllChirps(req: express.Request, res: express.Response) {
+async function handlerGetAllChirps(req: express.Request, res: express.Response) { 
   try {
-    const chirps = await getAllChirps();
+    const authorId = req.query.authorId as string | undefined;
+    const chirps = await getAllChirps(authorId);
     
     const formattedChirps = chirps.map(chirp => ({
       id: chirp.id,

@@ -296,7 +296,7 @@ Of course not! You're a good person. You're going to write documentation.
 We've talked a lot about how your REST API should follow conventions as much as possible. That said, the conventions are not enough. 
 
 You still need to document your endpoints. Without documentation, no one will know:
-
+  
 - Which resources are available
 - What the path to the endpoints are
 - Which HTTP methods are supported for each resource

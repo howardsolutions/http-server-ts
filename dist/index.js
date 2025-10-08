@@ -221,7 +221,8 @@ function middlewareLogResponses(req, res, next) {
 ;
 async function handlerGetAllChirps(req, res) {
     try {
-        const chirps = await getAllChirps();
+        const authorId = req.query.authorId;
+        const chirps = await getAllChirps(authorId);
         const formattedChirps = chirps.map(chirp => ({
             id: chirp.id,
             createdAt: chirp.createdAt,

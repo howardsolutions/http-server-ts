@@ -5,7 +5,11 @@ export async function createChirp(chirp) {
     const [result] = await db.insert(chirps).values(chirp).returning();
     return result;
 }
-export async function getAllChirps() {
+export async function getAllChirps(authorId) {
+    if (authorId) {
+        const result = await db.select().from(chirps).where(eq(chirps.userId, authorId)).orderBy(asc(chirps.createdAt));
+        return result;
+    }
     const result = await db.select().from(chirps).orderBy(asc(chirps.createdAt));
     return result;
 }
